@@ -7,7 +7,7 @@ It was initially meant as purely a proof-of-concept, so code quality may not be 
 ## Usage
 ``moonwave_convert extract <folder> [options..]`` - wrapper for the Moonwave extractor. Runs the extractor on your directory and outputs it to the ``--output`` option (or, by default output.json)
 
-``moonwave convert build <folder> <mode> [options..]`` - Extracts data out of ``folder``  with mode ``mode`` (option is currently only ``markdown``) and writes it to ``--output``. 
+``moonwave convert build <folder> <mode> [options..]`` - Extracts data out of ``folder`` and builds it with mode ``mode`` (option is currently only ``markdown``) and writes it to ``--output``. 
 
 ## Known issues
 The extractor turns paths relative to the input directory. For example, a directory containing a folder named "src" has to be extracted from the root directory, as passing ``./src`` into it breaks GitHub file links. So, TLDR: extract the root directory, not subfolders.
