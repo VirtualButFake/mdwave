@@ -6,6 +6,7 @@ It was initially meant as purely a proof-of-concept, so code quality may not be 
 
 ## Usage
 ``moonwave_convert extract <folder> [options..]`` - wrapper for the Moonwave extractor. Runs the extractor on your directory and outputs it to the ``--output`` option (or, by default output.json)
+
 ``moonwave convert build <folder> <mode> [options..]`` - Extracts data out of ``folder``  with mode ``mode`` (option is currently only ``markdown``) and writes it to ``--output``. 
 
 ## Known issues
