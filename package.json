@@ -1,22 +1,22 @@
 {
-  "name": "mdwave",
-  "version": "1.0.0",
-  "description": "",
-  "main": "./index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "chalk": "^4.1.0",
-    "config": "^3.3.9",
-    "node-fetch": "^2.6.7",
-    "parse-git-config": "^3.0.0",
-    "toml": "^3.0.0",
-    "yargs": "^17.7.2"
-  },
-  "bin": {
-    "mdwave": "./index.js"
-  }
+	"name": "moonwave_convert",
+	"version": "1.0.0",
+	"description": "",
+	"main": "./index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"chalk": "^4.1.0",
+		"config": "^3.3.9",
+		"node-fetch": "^2.6.7",
+		"parse-git-config": "^3.0.0",
+		"toml": "^3.0.0",
+		"yargs": "^17.7.2"
+	},
+	"bin": {
+		"moonwave_convert": "./index.js"
+	}
 }
