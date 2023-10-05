@@ -195,16 +195,13 @@ function parseApiCategories(luaClass, apiCategories) {
 async function generateTypeLinks(nameSet, luaClasses, baseUrl) {
 	const classNames = {};
 
-	nameSet.forEach((name) => (classNames[name] = `${baseUrl}api/${name}`));
+	nameSet.forEach((name) => (classNames[name] = `api/${name}`));
 
 	const classTypesNames = luaClasses
 		.filter((luaClass) => luaClass.types.length > 0)
 		.forEach((luaClass) =>
 			luaClass.types.forEach(
-				(type) =>
-					(classNames[
-						type.name
-					] = `api/${luaClass.name}#${type.name}`)
+				(type) => (classNames[type.name] = `api/${luaClass.name}#${type.name}`)
 			)
 		);
 
@@ -317,7 +314,7 @@ module.exports = async function (data) {
 	const typeLinksData = await generateTypeLinks(
 		nameSet,
 		filteredContent,
-		config.get("docusaurus.baseUrl")
+		config.get("baseUrl")
 	);
 
 	// extract all classes

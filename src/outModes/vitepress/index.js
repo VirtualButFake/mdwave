@@ -1,11 +1,28 @@
 const fs = require("fs");
 const path = require("path");
+const recursiveCopy = require("recursive-copy");
+
 const process = require("process");
 const yamlParser = require("json-to-pretty-yaml");
 
 const config = require("config");
+const sha = require("js-sha1");
+const {
+	detectPackageManager,
+	installDependencies,
+	addDependency,
+	addDevDependency,
+	removeDependency,
+} = require("nypm");
+const { exec } = require("child_process");
+const SNIP = "<!--hide-readme-content-before-this-line-->";
 
-async function Property() {}
+async function Property() {
+	return fs.readFileSync(
+		path.join(__dirname, "components/Property.md"),
+		"utf-8"
+	);
+}
 
 async function Function() {
 	return fs.readFileSync(
@@ -14,9 +31,18 @@ async function Function() {
 	);
 }
 
-async function Type() {}
+async function Type() {
+	return fs.readFileSync(path.join(__dirname, "components/Type.md"), "utf-8");
+}
 
-async function Member(settings, member, luaClass, extraTypes, memberPath, component) {
+async function Member(
+	settings,
+	member,
+	luaClass,
+	extraTypes,
+	memberPath,
+	component
+) {
 	let base = fs.readFileSync(
 		path.join(__dirname, "components/Member.md"),
 		"utf-8"
@@ -27,23 +53,42 @@ async function Member(settings, member, luaClass, extraTypes, memberPath, compon
 	memberContent += member.desc != "" ? member.desc : "";
 	base = base.replaceAll("$MEMBER_CONTENT$", memberContent);
 	base = base.replaceAll("$MEMBERPATH$", memberPath);
-	base = base.replace("$MEMBER_LINK$", `${settings.sourceUrl}/${member.source.path}#L${member.source.line}`)
+	base = base.replace(
+		"$MEMBER_LINK$",
+		`${settings.sourceUrl}/${member.source.path}#L${member.source.line}`
+	);
 
 	return base;
 }
 
 const capitalize = (text) => text[0].toUpperCase() + text.substring(1);
 
+const run = async (cmd) => {
+	const child = exec(cmd, (err) => {
+		if (err) console.error(err);
+	});
+	child.stderr.pipe(process.stderr);
+	child.stdout.pipe(process.stdout);
+	await new Promise((resolve) => child.on("close", resolve));
+};
+
 module.exports = async function (
 	typeLinks,
 	sidebarClassNames,
 	luaClasses,
-	settings
+	settings,
+	foundDocs
 ) {
 	// make directory for markdown
 	const basePath = path.join(process.cwd(), settings.output);
-	const apiPath = path.join(basePath, "api");
 
+	const pathHash = sha(basePath);
+	const folderPath = path.join(global.appRoot, "docSources", pathHash);
+
+	const mdPath = path.join(folderPath, "src");
+	const apiPath = path.join(mdPath, "api");
+
+	fs.mkdirSync(apiPath, { recursive: true });
 	fs.mkdirSync(apiPath, { recursive: true });
 
 	if (sidebarClassNames[0] == undefined) {
@@ -55,12 +100,14 @@ module.exports = async function (
 	// API sidebar
 	// GitHub (based on gitRepoButton)
 	// NavBar API button
-	const vitepressData = config.get("vitepress");
-	let themeConfig = JSON.parse(JSON.stringify(vitepressData)); // deep copy vitepressData
+	let configNew = JSON.parse(JSON.stringify(config));
+	let themeConfig = configNew.vitepress;
+	//let themeConfig = JSON.parse(JSON.stringify(vitepressData)); // deep copy vitepressData
 
 	// inject data that we have available
 	// github repo button
 	if (config.has("gitRepoButton") && config.get("gitRepoButton")) {
+		settings.addGitButton = true;
 		themeConfig.socialLinks.push({
 			icon: "github",
 			link: settings.gitRepo,
@@ -68,7 +115,7 @@ module.exports = async function (
 	}
 
 	// navbar api button
-	if (themeConfig.nav.find((item) => item.text === "API")) {
+	if (!themeConfig.nav.find((item) => item.text === "API")) {
 		themeConfig.nav.push({
 			text: "API",
 			link: sidebarClassNames[0].href,
@@ -194,14 +241,16 @@ module.exports = async function (
 			for (const idx in members) {
 				const member = members[idx];
 
-				memberString += await Member(
-					settings,
-					member,
-					actualClass,
-					extraTypes.get(member),
-					`.${section.name}[${idx}]`,
-					section.component
-				);
+				if (!skipMembers.has(member)) {
+					memberString += await Member(
+						settings,
+						member,
+						actualClass,
+						extraTypes.get(member),
+						`.${section.name}[${idx}]`,
+						section.component
+					);
+				}
 			}
 
 			sectionString += sectionBase.replace("$SECTION_CONTENT$", memberString);
@@ -226,13 +275,14 @@ module.exports = async function (
 			mdBase = mdBase.replace(match[0], current);
 		}
 
-		let extraTypesNew = {}
+		let extraTypesNew = {};
 
 		for (const [_, fn] of typeOccurrences) {
 			// map to function index
 			for (const func of luaClass.class.functions) {
 				if (func == fn) {
-					extraTypesNew[luaClass.class.functions.indexOf(fn)] = extraTypes.get(fn)
+					extraTypesNew[luaClass.class.functions.indexOf(fn)] =
+						extraTypes.get(fn);
 				}
 			}
 		}
@@ -258,4 +308,119 @@ module.exports = async function (
 				)
 		);
 	}
+
+	// iterate actions, replace api_path with first api url
+	for (let action of themeConfig.actions) {
+		if (action.href == "api_path") {
+			action.href = sidebarClassNames[0].href;
+		}
+	}
+
+	// setup cfg data
+
+	// inject data into index.md
+	let frontmatterHome = {
+		layout: configNew.readmeAsHome ? "doc" : "page",
+		actions: themeConfig.actions,
+		features: configNew.features,
+	};
+
+	let index = fs
+		.readFileSync(path.join(__dirname, "index.md"), "utf-8")
+		.replace("$FRONTMATTER_HOME$", JSON.stringify(frontmatterHome));
+
+	if (configNew.readmeAsHome) {
+		const snip = foundDocs.readme.indexOf(SNIP);
+		let readme = foundDocs.readme;
+		if (snip > 0) {
+			readme = readme.slice(snip + SNIP.length);
+		}
+
+		index = index.replace(
+			"$README_DATA$",
+			`<div class="vpdoc-home">\n\n${readme}\n</div>`
+		);
+		index = index.replace("$INCLUDE_HOME$", "");
+	} else {
+		index = index.replace("$README_DATA$", "");
+		index = index.replace("$INCLUDE_HOME$", "<Home />");
+	}
+
+	fs.writeFileSync(`${mdPath}/index.md`, index);
+
+	// create config
+	// changelog page
+	if (configNew.includeChangelog) {
+		if (foundDocs.changelog == undefined) {
+			throw new Error(
+				'includeChangelog was true, but no file containing "changelog" was found in the project directory.'
+			);
+		}
+
+		let outline = JSON.stringify([2, 3]);
+
+		if (configNew.changelogOutline) {
+			outline = JSON.stringify(configNew.changelogOutline);
+		}
+
+		fs.writeFileSync(
+			`${mdPath}/changelog.md`,
+			`---\noutline: ${outline}\n---\n<div class="vpdoc-home">\n\n${foundDocs.changelog}\n</div>`
+		);
+		// add to navbar
+		themeConfig.nav.push({
+			text: "Changelog",
+			link: "/changelog",
+		});
+	}
+
+	fs.writeFileSync(`${folderPath}/config.json`, JSON.stringify(configNew));
+
+	// install dependencies
+	console.log("Generated Markdown files & config, preparing to build..");
+
+	// clone theme contents
+	console.log("Cloning theme...");
+
+	for (const filePath of fs.readdirSync(path.join(__dirname, "theme"))) {
+		if (fs.existsSync(path.join(folderPath, filePath))) {
+			fs.rmSync(path.join(folderPath, filePath), { recursive: true });
+		}
+
+		await recursiveCopy(
+			path.join(__dirname, "theme", filePath),
+			path.join(folderPath, filePath)
+		);
+	}
+
+	// run npm i in project directory
+	console.log(
+		"Updating dependencies. If this is your first run, this may take a bit. Please wait..."
+	);
+
+	await installDependencies({
+		cwd: folderPath,
+		packageManager: {
+			command: "npm",
+		},
+	});
+
+	console.log(
+		"Building VitePress site to output folder... this may take a bit."
+	);
+	// build vitepress
+	process.chdir(folderPath);
+	await run("npm run docs:build");
+	console.log(
+		"Built VitePress site to local output; trying to move to output folder.."
+	);
+
+	// delete current folderi f exists
+	if (fs.existsSync(basePath)) {
+		fs.rmSync(basePath, { recursive: true });
+	}
+	await recursiveCopy(path.join(folderPath, "dist"), basePath);
+	fs.rmSync(path.join(folderPath, "dist"), { recursive: true });
+
+	console.log("Moved files to output folder.");
 };

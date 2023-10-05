@@ -1,4 +1,4 @@
-const { writeFileSync } = require("fs");
+const { readFileSync, existsSync, readdirSync } = require("fs");
 
 const extract = require("../util/extract");
 const prepareJson = require("../util/prepareJson");
@@ -22,22 +22,39 @@ module.exports = {
 			.option("output", {
 				alias: "o",
 				describe: "The output folder.",
-				default: "output",
+				default: "dist",
 			});
 	},
 	handler: async (argv) => {
 		const result = await extract(argv.folder);
+
+		let readme;
+		let changelog;
+
+		if (existsSync(`${argv.folder}/README.md`)) {
+			readme = readFileSync(`${argv.folder}/README.md`, "utf-8");
+		}
+
+		const changelogFile = readdirSync(`${argv.folder}`).find((file) => file.toLowerCase().includes("changelog"))
+		if (changelogFile) {
+			changelog = readFileSync(`${argv.folder}/${changelogFile}`, "utf-8");
+		}
+
 		const newJsonData = await prepareJson(result);
 
 		// output
 		const mode = outModes[argv.mode];
 		newJsonData.settings.output = argv.output;
 
-		const output = await mode(
+		await mode(
 			newJsonData.typeLinks,
 			newJsonData.sidebar,
 			newJsonData.classes,
-			newJsonData.settings
+			newJsonData.settings,
+			{
+				readme,
+				changelog
+			}
 		);
 	},
 };

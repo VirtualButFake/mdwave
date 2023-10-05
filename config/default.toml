@@ -2,10 +2,18 @@ classOrder = []
 apiCategories = []
 gitRepoButton = true
 nestSections = true
+readmeAsHome=false
+features = []        # format: title: string, details: string
 
 [vitepress]
 description = "Moonwave_convert VitePress output"
 socialLinks = []
+
+# Actions
+[[vitepress.actions]]
+text = "API Reference"
+href = "api_path"
+class = "mx-1.5 border border-slate-400 bg-slate-300 text-slate-800 hover:bg-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
 
 # NavBar
 [[vitepress.nav]]
@@ -16,4 +24,4 @@ link = "/"    # relative paths
 
 # Footer
 [vitepress.footer]
-message = 'Made using <a href="https://github.com/VirtualButFake/moonwave-converter">moonwave-converter</a>'
+message = 'Made using <a href="https://github.com/VirtualButFake/moonwave-converter">moonwave-converter by VirtualButFake</a>'
