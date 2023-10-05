@@ -204,7 +204,7 @@ async function generateTypeLinks(nameSet, luaClasses, baseUrl) {
 				(type) =>
 					(classNames[
 						type.name
-					] = `${baseUrl}api/${luaClass.name}#${type.name}`)
+					] = `api/${luaClass.name}#${type.name}`)
 			)
 		);
 
@@ -254,9 +254,9 @@ module.exports = async function (data) {
 	const nameSet = new Set();
 	filteredContent.forEach((luaClass) => nameSet.add(luaClass.name));
 
-	const classOrder = config.get("moonwave.classOrder");
+	const classOrder = config.get("classOrder");
 
-	if (config.has("moonwave.autoSectionPath")) {
+	if (config.has("autoSectionPath")) {
 		if (
 			classOrder.length > 0 &&
 			!classOrder.every((item) => typeof item === "object")
@@ -267,7 +267,7 @@ module.exports = async function (data) {
 			);
 		}
 
-		const prefix = config.get("moonwave.autoSectioPath");
+		const prefix = config.get("autoSectioPath");
 
 		for (const luaClass of filteredContent) {
 			if (luaClass.source.path.startsWith(prefix)) {
@@ -312,7 +312,7 @@ module.exports = async function (data) {
 
 	const sidebarClassNames = allLuaClassNamesOrdered;
 
-	const apiCategories = config.get("moonwave.apiCategories");
+	const apiCategories = config.get("apiCategories");
 
 	const typeLinksData = await generateTypeLinks(
 		nameSet,
@@ -321,8 +321,8 @@ module.exports = async function (data) {
 	);
 
 	// extract all classes
-	const gitRepoUrl = config.has("moonwave.gitRepoUrl")
-		? config.get("moonwave.gitRepoUrl")
+	const gitRepoUrl = config.has("gitRepoUrl")
+		? config.get("gitRepoUrl")
 		: getGitRepoUrl();
 	let returnData = {
 		typeLinks: typeLinksData,
@@ -332,7 +332,12 @@ module.exports = async function (data) {
 			gitRepo: gitRepoUrl,
 			sourceUrl:
 				gitRepoUrl &&
-				gitRepoUrl + `/blob/${config.has("moonwave.gitSourceBranch") ? config.get("moonwave.gitSourceBranch") : "master"}`,
+				gitRepoUrl +
+					`/blob/${
+						config.has("gitSourceBranch")
+							? config.get("gitSourceBranch")
+							: "master"
+					}`,
 		},
 	};
 
