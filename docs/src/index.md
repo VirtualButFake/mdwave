@@ -10,11 +10,6 @@
         "class": "group mx-1.5 border border-indigo-600 bg-indigo-500 text-slate-100 hover:bg-indigo-600 dark:border-indigo-400 dark:hover:bg-indigo-400",
         "iconClass": "relative -top-px ml-1 inline fill-current transition-transform duration-150 group-hover:translate-x-1",
       },
-      {
-        "class": "mx-1.5 border border-slate-400 bg-slate-300 text-slate-800 hover:bg-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700",
-        "href": "changelog",
-        "text": "Changelog",
-      },
     ],
   "title": "MDWave",
   "description": "A simple and beautiful Moonwave frontend",
