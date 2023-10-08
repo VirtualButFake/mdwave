@@ -560,7 +560,6 @@ module.exports = async function (
 				// add self into group
 				groupSidebar.items.push({
 					text: frontmatter.title || titleCase(path.basename(file, ".md")),
-					link: `${sidebarPath}/${path.basename(file, ".md")}`,
 					position: frontmatter.position || 0,
 				});
 			}
