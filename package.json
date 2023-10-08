@@ -1,22 +1,32 @@
 {
-	"name": "moonwave_convert",
+	"name": "mdwave",
 	"version": "1.0.0",
 	"description": "",
 	"main": "./index.js",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
-	"author": "",
+	"author": "VirtualButFake",
 	"license": "ISC",
 	"dependencies": {
-		"chalk": "^4.1.0",
+		"chalk": "^4.1.2",
+		"chokidar": "^3.5.3",
 		"config": "^3.3.9",
-		"node-fetch": "^2.6.7",
+		"config-reloadable": "^1.0.9",
+		"filecompare": "^1.0.4",
+		"gh-pages": "^6.0.0",
+		"js-sha1": "^0.6.0",
+		"json-to-pretty-yaml": "^1.2.2",
+		"node-fetch": "^2.7.0",
+		"nypm": "^0.3.3",
 		"parse-git-config": "^3.0.0",
+		"recursive-copy": "^2.0.14",
+		"to-title-case": "^1.0.0",
 		"toml": "^3.0.0",
+		"yaml-front-matter": "^4.1.1",
 		"yargs": "^17.7.2"
 	},
 	"bin": {
-		"moonwave_convert": "./index.js"
+		"mdwave": "./index.js"
 	}
 }

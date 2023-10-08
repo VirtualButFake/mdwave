@@ -1,1 +1,5 @@
 node_modules
+docSources
+docs/node_modules
+**/.vitepress/cache
+temp
