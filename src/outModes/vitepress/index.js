@@ -3,9 +3,12 @@ const path = require("path");
 const recursiveCopy = require("recursive-copy");
 
 const process = require("process");
-const yamlParser = require("json-to-pretty-yaml");
+const ghp = require("gh-pages");
 
-const config = require("config");
+const yamlParser = require("json-to-pretty-yaml");
+const frontMatter = require("yaml-front-matter");
+const titleCase = require("to-title-case");
+
 const sha = require("js-sha1");
 const {
 	detectPackageManager,
@@ -15,6 +18,8 @@ const {
 	removeDependency,
 } = require("nypm");
 const { exec } = require("child_process");
+const { create } = require("domain");
+const { config } = require("yargs");
 const SNIP = "<!--hide-readme-content-before-this-line-->";
 
 async function Property() {
@@ -50,7 +55,7 @@ async function Member(
 
 	let memberContent = "";
 	memberContent += await component(member, luaClass, extraTypes, memberPath);
-	memberContent += member.desc != "" ? member.desc : "";
+	memberContent += member.desc != "" ? "\n" + member.desc : "";
 	base = base.replaceAll("$MEMBER_CONTENT$", memberContent);
 	base = base.replaceAll("$MEMBERPATH$", memberPath);
 	base = base.replace(
@@ -77,15 +82,16 @@ module.exports = async function (
 	sidebarClassNames,
 	luaClasses,
 	settings,
-	foundDocs
+	foundDocs,
+	verbose
 ) {
 	// make directory for markdown
-	const basePath = path.join(process.cwd(), settings.output);
+	const basePath = path.join(process.cwd(), settings.output || "temp");
 
 	const pathHash = sha(basePath);
 	const folderPath = path.join(global.appRoot, "docSources", pathHash);
 
-	const mdPath = path.join(folderPath, "src");
+	const mdPath = settings.tempDataOutput || path.join(folderPath, "src");
 	const apiPath = path.join(mdPath, "api");
 
 	fs.mkdirSync(apiPath, { recursive: true });
@@ -100,13 +106,16 @@ module.exports = async function (
 	// API sidebar
 	// GitHub (based on gitRepoButton)
 	// NavBar API button
-	let configNew = JSON.parse(JSON.stringify(config));
-	let themeConfig = configNew.vitepress;
+	let modifiableConfig = JSON.parse(JSON.stringify(global.config));
+	let themeConfig = modifiableConfig.vitepress;
 	//let themeConfig = JSON.parse(JSON.stringify(vitepressData)); // deep copy vitepressData
 
 	// inject data that we have available
 	// github repo button
-	if (config.has("gitRepoButton") && config.get("gitRepoButton")) {
+	if (
+		global.config.has("gitRepoButton") &&
+		global.config.get("gitRepoButton")
+	) {
 		settings.addGitButton = true;
 		themeConfig.socialLinks.push({
 			icon: "github",
@@ -123,13 +132,119 @@ module.exports = async function (
 	}
 
 	// sidebar
-	themeConfig.sidebar["api"] = sidebarClassNames.map((className) => {
-		return {
-			text: className.label,
-			link: className.href,
-		};
-	});
+	// map sidebarClassNames to custom sidebar groups (if specified)
+	let remainingClassNames = sidebarClassNames.slice(0);
+	themeConfig.sidebar["api"] = {
+		text: "API",
+		items: [],
+	};
 
+	let createdSectionSidebars = [];
+
+	if (
+		global.config.has("classSections") &&
+		global.config.get("classSections")
+	) {
+		// recursively iterate through classsections and map them to the sidebar
+		function iterate(sidebarData, currentSidebar) {
+			let addedAsRoot = false;
+			let sidebar = {
+				text: sidebarData.section,
+				items: [],
+			};
+
+			if (sidebarData.classes) {
+				// in case an empty sidebar is provided, useful for padding sections
+				for (const className of sidebarData.classes) {
+					const fndData = remainingClassNames.find(
+						(item) => item.label == className
+					);
+					if (fndData) {
+						remainingClassNames.splice(
+							remainingClassNames.findIndex((item) => item.label == className),
+							1
+						);
+
+						if (sidebarData.isRoot) {
+							if (sidebarData.children == undefined) {
+								// add ourselves to currentsidebar.items
+								currentSidebar.items.push({
+									text: fndData.label,
+									link: fndData.href,
+								});
+
+								addedAsRoot = true;
+								continue;
+							}
+
+							if (addedAsRoot) {
+								throw new Error(
+									'Tried to add sidebar element as root to a group that already had a class as root. Make sure that you don\'t have "isRoot" enabled on a sidebar element with more than 2 classes.'
+								);
+							}
+							// if collapse is enabled, the sidebar will be a link to the first item in the section
+							// and the items will be nested under it
+							sidebar = {
+								text: fndData.label,
+								link: fndData.href,
+								items: [],
+							};
+
+							addedAsRoot = true;
+							continue;
+						}
+
+						sidebar.items.push({
+							text: fndData.label,
+							link: fndData.href,
+						});
+					}
+				}
+			}
+
+			if (addedAsRoot && sidebarData.children == undefined) {
+				// we've added all children to parent, no need to do it again
+				return;
+			}
+
+			currentSidebar.items.push(sidebar);
+
+			if (sidebarData.children) {
+				for (const child of sidebarData.children) {
+					iterate(child, sidebar);
+				}
+			}
+
+			return sidebar;
+		}
+
+		for (const sidebarData of global.config.get("classSections")) {
+			createdSectionSidebars.push(
+				iterate(sidebarData, {
+					text: sidebarData.section,
+					items: [],
+				})
+			);
+		}
+	}
+
+	if (remainingClassNames.length > 0) {
+		themeConfig.sidebar["api"].items.push({
+			text: "API",
+			items: remainingClassNames.map((className) => {
+				return {
+					text: className.label,
+					link: className.href,
+				};
+			}),
+		});
+	}
+
+	for (const sidebar of createdSectionSidebars) {
+		themeConfig.sidebar["api"].items.push(sidebar);
+	}
+
+	// map docs to markdown files
 	// create front matter for each class
 	for (const luaClass of luaClasses) {
 		// front matter for each class is basically just all data to be used in the file
@@ -293,7 +408,9 @@ module.exports = async function (
 			extraTypes: extraTypesNew,
 			class: luaClass.class,
 			outline:
-				config.has("nestSections") && config.get("nestSections") ? [2, 3] : 2,
+				global.config.has("nestSections") && global.config.get("nestSections")
+					? [2, 3]
+					: 2,
 		};
 
 		let frontMatter = yamlParser.stringify(frontMatterObject);
@@ -316,20 +433,20 @@ module.exports = async function (
 		}
 	}
 
-	// setup cfg data
-
 	// inject data into index.md
 	let frontmatterHome = {
-		layout: configNew.readmeAsHome ? "doc" : "page",
+		layout: modifiableConfig.readmeAsHome ? "doc" : "page",
 		actions: themeConfig.actions,
-		features: configNew.features,
+		features: themeConfig.features,
+		title: modifiableConfig.title,
+		description: modifiableConfig.description,
 	};
 
 	let index = fs
 		.readFileSync(path.join(__dirname, "index.md"), "utf-8")
 		.replace("$FRONTMATTER_HOME$", JSON.stringify(frontmatterHome));
 
-	if (configNew.readmeAsHome) {
+	if (modifiableConfig.readmeAsHome) {
 		const snip = foundDocs.readme.indexOf(SNIP);
 		let readme = foundDocs.readme;
 		if (snip > 0) {
@@ -350,8 +467,8 @@ module.exports = async function (
 
 	// create config
 	// changelog page
-	if (configNew.includeChangelog) {
-		if (foundDocs.changelog == undefined) {
+	if (modifiableConfig.includeChangelog) {
+		if (!foundDocs.changelog) {
 			throw new Error(
 				'includeChangelog was true, but no file containing "changelog" was found in the project directory.'
 			);
@@ -359,8 +476,8 @@ module.exports = async function (
 
 		let outline = JSON.stringify([2, 3]);
 
-		if (configNew.changelogOutline) {
-			outline = JSON.stringify(configNew.changelogOutline);
+		if (modifiableConfig.changelogOutline) {
+			outline = JSON.stringify(modifiableConfig.changelogOutline);
 		}
 
 		fs.writeFileSync(
@@ -374,23 +491,133 @@ module.exports = async function (
 		});
 	}
 
-	fs.writeFileSync(`${folderPath}/config.json`, JSON.stringify(configNew));
+	// generate src/docs if needed
+	if (fs.existsSync(path.join(process.cwd(), "docs"))) {
+		async function iterateDocs(dir, sidebarPath) {
+			let sidebar;
 
-	// install dependencies
-	console.log("Generated Markdown files & config, preparing to build..");
+			for (const file of fs.readdirSync(dir)) {
+				if (fs.lstatSync(path.join(dir, file)).isDirectory()) {
+					iterateDocs(path.join(dir, file), sidebarPath + "/" + file);
+					continue;
+				}
 
-	// clone theme contents
-	console.log("Cloning theme...");
+				const filePath = path.join(dir, file);
+				const frontmatter = frontMatter.loadFront(fs.readFileSync(filePath));
+				const group =
+					frontmatter.group ||
+					(modifiableConfig.sidebarAliases &&
+						modifiableConfig.sidebarAliases[sidebarPath]) ||
+					titleCase(path.basename(sidebarPath));
 
-	for (const filePath of fs.readdirSync(path.join(__dirname, "theme"))) {
-		if (fs.existsSync(path.join(folderPath, filePath))) {
-			fs.rmSync(path.join(folderPath, filePath), { recursive: true });
+				if (themeConfig.sidebar[sidebarPath] == undefined) {
+					themeConfig.sidebar[sidebarPath] = [];
+				}
+
+				sidebar = themeConfig.sidebar[sidebarPath];
+
+				let groupSidebar = themeConfig.sidebar[sidebarPath].find(
+					(item) => item.text === group
+				);
+
+				// check if we're dealing with a situation where the group has multiple layers
+				// (contains a /)
+				if (group.includes("/")) {
+					const groups = group.split("/");
+
+					// recursively create sidebars for each group, and add ourselves into the last one
+					let currentGroup = themeConfig.sidebar[sidebarPath];
+					let currentSidebar = null;
+
+					for (const group of groups) {
+						let groupSidebar = currentGroup.find((item) => item.text === group);
+
+						if (groupSidebar == undefined) {
+							groupSidebar = {
+								text: group,
+								items: [],
+							};
+
+							currentGroup.push(groupSidebar);
+						}
+
+						currentGroup = groupSidebar.items;
+						currentSidebar = groupSidebar
+					}
+
+					groupSidebar = currentSidebar
+				}
+
+				if (groupSidebar == undefined) {
+					groupSidebar = {
+						text: group,
+						items: [],
+					};
+
+					themeConfig.sidebar[sidebarPath].push(groupSidebar);
+				}
+
+				// add self into group
+				groupSidebar.items.push({
+					text: frontmatter.title || titleCase(path.basename(file, ".md")),
+					link: `${sidebarPath}/${path.basename(file, ".md")}`,
+					position: frontmatter.position || 0,
+				});
+			}
+
+			// sort all groups in the sidebar on the position var
+			for (const group of sidebar) {
+				group.items.sort((a, b) => {
+					if (a.position < b.position) {
+						return -1;
+					} else if (a.position > b.position) {
+						return 1;
+					} else {
+						return 0;
+					}
+				});
+			}
+		}
+
+		iterateDocs(path.join(process.cwd(), "docs"), "docs");
+
+		// clone docs folder into base
+		// remove old folder if exists
+		if (fs.existsSync(path.join(mdPath, "docs"))) {
+			fs.rmSync(path.join(mdPath, "docs"), { recursive: true });
 		}
 
 		await recursiveCopy(
-			path.join(__dirname, "theme", filePath),
-			path.join(folderPath, filePath)
+			path.join(process.cwd(), "docs"),
+			path.join(mdPath, "docs")
 		);
+	}
+
+	if (settings.tempDataOutput == undefined) {
+		fs.writeFileSync(
+			`${folderPath}/config.json`,
+			JSON.stringify(modifiableConfig)
+		);
+
+		for (const filePath of fs.readdirSync(path.join(__dirname, "theme"))) {
+			if (fs.existsSync(path.join(folderPath, filePath))) {
+				fs.rmSync(path.join(folderPath, filePath), { recursive: true });
+			}
+
+			await recursiveCopy(
+				path.join(__dirname, "theme", filePath),
+				path.join(folderPath, filePath)
+			);
+		}
+	} else {
+		fs.writeFileSync(
+			path.join(settings.tempDataOutput, "../", "config.json"),
+			JSON.stringify(modifiableConfig)
+		);
+	}
+
+	if (settings.output == undefined) {
+		return folderPath;
 	}
 
 	// run npm i in project directory
@@ -405,22 +632,30 @@ module.exports = async function (
 		},
 	});
 
-	console.log(
-		"Building VitePress site to output folder... this may take a bit."
-	);
 	// build vitepress
+	const oldDir = process.cwd();
 	process.chdir(folderPath);
 	await run("npm run docs:build");
-	console.log(
-		"Built VitePress site to local output; trying to move to output folder.."
-	);
 
 	// delete current folderi f exists
 	if (fs.existsSync(basePath)) {
 		fs.rmSync(basePath, { recursive: true });
 	}
-	await recursiveCopy(path.join(folderPath, "dist"), basePath);
-	fs.rmSync(path.join(folderPath, "dist"), { recursive: true });
 
-	console.log("Moved files to output folder.");
+	if (verbose == undefined || verbose) {
+		console.log("Moving files, or publishing to GitHub pages..");
+	}
+
+	if (settings.output != "github-pages") {
+		await recursiveCopy(path.join(folderPath, "dist"), basePath);
+		fs.rmSync(path.join(folderPath, "dist"), { recursive: true });
+	} else {
+		// publish to gh-pages
+		process.chdir(oldDir);
+		await ghp.publish(path.join(folderPath, "dist"), function (err) {
+			console.log("Failed to push to GitHub Pages:", err);
+		});
+
+		fs.rmSync(path.join(folderPath, "dist"), { recursive: true });
+	}
 };

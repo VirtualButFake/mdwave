@@ -2,7 +2,6 @@
 const parseGitConfig = require("parse-git-config");
 
 const generateRobloxTypes = require("./robloxTypes");
-const config = require("config");
 
 const capitalize = (text) => text[0].toUpperCase() + text.substring(1);
 
@@ -23,30 +22,9 @@ const mapLinks = (nameSet, items) =>
 		return {
 			type: "link",
 			href: `/api/${name}`,
-			label: breakCapitalWordsZeroWidth(name),
+			label: name,
 		};
 	});
-
-function flattenTOC(toc) {
-	const flat = [];
-
-	const iterate = (list) => {
-		for (const item of list) {
-			flat.push({
-				...item,
-				children: undefined,
-			});
-
-			if (item.children) {
-				iterate(item.children);
-			}
-		}
-	};
-
-	iterate(toc);
-
-	return flat;
-}
 
 function parseSimpleClassOrder(content, classOrder, nameSet) {
 	const listedLinks = mapLinks(nameSet, classOrder);
@@ -58,7 +36,7 @@ function parseSimpleClassOrder(content, classOrder, nameSet) {
 		.map((name) => ({
 			type: "link",
 			href: `/api/${name}`,
-			label: breakCapitalWordsZeroWidth(name),
+			label: name,
 		}));
 
 	return [...listedLinks, ...unlistedLinks];
@@ -89,7 +67,7 @@ function parseSectionalClassOrder(content, classOrder, nameSet) {
 		.map((name) => ({
 			type: "link",
 			href: `/api/${name}`,
-			label: breakCapitalWordsZeroWidth(name),
+			label: name,
 		}));
 
 	return [...listedSidebar, ...unlistedSidebar];
@@ -100,7 +78,7 @@ function parseClassOrder(content, classOrder, nameSet) {
 		return [...nameSet].sort().map((name) => ({
 			type: "link",
 			href: `/api/${name}`,
-			label: breakCapitalWordsZeroWidth(name),
+			label: name,
 		}));
 	}
 
@@ -195,13 +173,13 @@ function parseApiCategories(luaClass, apiCategories) {
 async function generateTypeLinks(nameSet, luaClasses, baseUrl) {
 	const classNames = {};
 
-	nameSet.forEach((name) => (classNames[name] = `api/${name}`));
+	nameSet.forEach((name) => (classNames[name] = `/api/${name}`));
 
 	const classTypesNames = luaClasses
 		.filter((luaClass) => luaClass.types.length > 0)
 		.forEach((luaClass) =>
 			luaClass.types.forEach(
-				(type) => (classNames[type.name] = `api/${luaClass.name}#${type.name}`)
+				(type) => (classNames[type.name] = `/api/${luaClass.name}#${type.name}`)
 			)
 		);
 
@@ -251,9 +229,9 @@ module.exports = async function (data) {
 	const nameSet = new Set();
 	filteredContent.forEach((luaClass) => nameSet.add(luaClass.name));
 
-	const classOrder = config.get("classOrder");
+	const classOrder = global.config.get("classOrder");
 
-	if (config.has("autoSectionPath")) {
+	if (global.config.has("autoSectionPath")) {
 		if (
 			classOrder.length > 0 &&
 			!classOrder.every((item) => typeof item === "object")
@@ -264,7 +242,7 @@ module.exports = async function (data) {
 			);
 		}
 
-		const prefix = config.get("autoSectioPath");
+		const prefix = global.config.get("autoSectionPath");
 
 		for (const luaClass of filteredContent) {
 			if (luaClass.source.path.startsWith(prefix)) {
@@ -309,17 +287,15 @@ module.exports = async function (data) {
 
 	const sidebarClassNames = allLuaClassNamesOrdered;
 
-	const apiCategories = config.get("apiCategories");
-
 	const typeLinksData = await generateTypeLinks(
 		nameSet,
 		filteredContent,
-		config.get("baseUrl")
+		global.config.get("baseUrl")
 	);
 
 	// extract all classes
-	const gitRepoUrl = config.has("gitRepoUrl")
-		? config.get("gitRepoUrl")
+	const gitRepoUrl = global.config.has("gitRepoUrl")
+		? global.config.get("gitRepoUrl")
 		: getGitRepoUrl();
 	let returnData = {
 		typeLinks: typeLinksData,
@@ -331,17 +307,31 @@ module.exports = async function (data) {
 				gitRepoUrl &&
 				gitRepoUrl +
 					`/blob/${
-						config.has("gitSourceBranch")
-							? config.get("gitSourceBranch")
+						global.config.has("gitSourceBranch")
+							? global.config.get("gitSourceBranch")
 							: "master"
 					}`,
 		},
 	};
 
 	for (const luaClass of filteredContent) {
+		// sort sections in luaclass
+		const sections = ["functions", "properties", "types"];
+
+		for (const section of sections) {
+			luaClass[section].sort((a, b) => {
+				if (a.name < b.name) {
+					return -1;
+				} else if (a.name > b.name) {
+					return 1;
+				} else {
+					return 0;
+				}
+			});
+		}
+
 		returnData.classes.push({
 			name: luaClass.name,
-			toc: parseApiCategories(luaClass, apiCategories),
 			class: luaClass,
 		});
 	}

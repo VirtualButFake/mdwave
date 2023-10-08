@@ -27,7 +27,7 @@ apiCategories = []
 # Social Links
 # [[vitepress.socialLinks]]
 # icon = "github"
-# link: "https://github.com/VirtualButFake/moonwave-converter"
+# link: "https://github.com/VirtualButFake/mdwave"
 
 # Footer
 # [vitepress.footer]

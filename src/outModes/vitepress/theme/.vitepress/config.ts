@@ -4,10 +4,13 @@ import config from "../config.json"
 import { DefaultTheme } from "vitepress"
 
 export default defineConfig({
-  title: config.title || "moonwave_convert site",
-  description: config.vitepress.description,
+  title: config.title || "mdwave site",
+  description: config.description,
   base: config.baseUrl,
   themeConfig: {
+    search: {
+      provider: 'local'
+    },
     nav: config.vitepress.nav,
     sidebar: config.vitepress.sidebar,
     socialLinks: config.vitepress.socialLinks as DefaultTheme.SocialLink[],

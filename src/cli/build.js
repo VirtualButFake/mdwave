@@ -1,4 +1,5 @@
 const { readFileSync, existsSync, readdirSync } = require("fs");
+const path = require("path");
 
 const extract = require("../util/extract");
 const prepareJson = require("../util/prepareJson");
@@ -26,18 +27,43 @@ module.exports = {
 			});
 	},
 	handler: async (argv) => {
+		// we assume that argv.folder is going to be purely the path for the code
+		// so we add the difference between paths to the result
+		const pathDiff = path.relative(process.cwd(), argv.folder);
 		const result = await extract(argv.folder);
+
+		// recursively iterate through EVERYTHING
+		// if we find a key that is "path" then overwrite it
+		async function iterate(obj) {
+			if (typeof obj == "object") {
+				if (Array.isArray(obj)) {
+					obj.forEach(iterate);
+				} else {
+					for (const key in obj) {
+						if (key == "path" && typeof obj[key] == "string") {
+							obj[key] = path.join(pathDiff, obj[key]);
+						} else {
+							iterate(obj[key]);
+						}
+					}
+				}
+			}
+		}
+
+		iterate(result);
 
 		let readme;
 		let changelog;
 
-		if (existsSync(`${argv.folder}/README.md`)) {
-			readme = readFileSync(`${argv.folder}/README.md`, "utf-8");
+		if (existsSync(`${process.cwd()}/README.md`)) {
+			readme = readFileSync(`${process.cwd()}/README.md`, "utf-8");
 		}
 
-		const changelogFile = readdirSync(`${argv.folder}`).find((file) => file.toLowerCase().includes("changelog"))
+		const changelogFile = readdirSync(`${process.cwd()}`).find((file) =>
+			file.toLowerCase().includes("changelog")
+		);
 		if (changelogFile) {
-			changelog = readFileSync(`${argv.folder}/${changelogFile}`, "utf-8");
+			changelog = readFileSync(`${process.cwd()}/${changelogFile}`, "utf-8");
 		}
 
 		const newJsonData = await prepareJson(result);
@@ -53,7 +79,7 @@ module.exports = {
 			newJsonData.settings,
 			{
 				readme,
-				changelog
+				changelog,
 			}
 		);
 	},

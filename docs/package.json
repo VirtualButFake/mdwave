@@ -1,0 +1,26 @@
+{
+  "devDependencies": {
+    "postcss-flexbugs-fixes": "^5.0.2",
+    "postcss-preset-env": "^7.7.2",
+    "prettier": "^3.0.3",
+    "prettier-plugin-tailwindcss": "^0.5.5",
+    "tailwindcss": "^3.1.5",
+    "vitepress": "*",
+    "vue": "^3.2.37"
+  },
+  "type": "module",
+  "scripts": {
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview"
+  },
+  "postcss": {
+    "plugins": {
+      "tailwindcss": {},
+      "autoprefixer": {}
+    }
+  },
+  "dependencies": {
+    "url": "^0.11.3"
+  }
+}
