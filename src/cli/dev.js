@@ -195,17 +195,24 @@ module.exports = {
 			);
 
 			// output
-			await outModes.vitepress(
-				newJsonData.typeLinks,
-				newJsonData.sidebar,
-				newJsonData.classes,
-				newJsonData.settings,
-				{
-					readme,
-					changelog,
-				},
-				false
-			);
+			try {
+				await outModes.vitepress(
+					newJsonData.typeLinks,
+					newJsonData.sidebar,
+					newJsonData.classes,
+					newJsonData.settings,
+					{
+						readme,
+						changelog,
+					},
+					false
+				);
+			} catch (err) {
+				console.log(
+					"Could not output docs. Please check your syntax and try again. Error: " +
+						err
+				);
+			}
 
 			// this pushes into our temp folder; compare differences with current files
 			// iterate files

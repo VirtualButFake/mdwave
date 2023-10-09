@@ -134,110 +134,148 @@ module.exports = async function (
 	// sidebar
 	// map sidebarClassNames to custom sidebar groups (if specified)
 	let remainingClassNames = sidebarClassNames.slice(0);
-	themeConfig.sidebar["api"] = {
+	themeConfig.sidebar["api"] = [
+		/*{
 		text: "API",
 		items: [],
-	};
+	}*/
+	];
 
 	let createdSectionSidebars = [];
+	const sidebarPath = "api";
 
-	if (
-		global.config.has("classSections") &&
-		global.config.get("classSections")
-	) {
-		// recursively iterate through classsections and map them to the sidebar
-		function iterate(sidebarData, currentSidebar) {
-			let addedAsRoot = false;
-			let sidebar = {
-				text: sidebarData.section,
+	// iterate through all classes, check if they have any tags that we take interest in
+	for (let luaClass of luaClasses) {
+		let tags = luaClass.class.tags;
+		const classSidebarData = sidebarClassNames.find(
+			(element) => element.label == luaClass.name
+		);
+
+		let group = "API";
+		let isRoot = false;
+		let title = luaClass.class.name;
+		let position = 0;
+		let indicesFound = [];
+
+		for (const idx in tags) {
+			const tag = tags[idx];
+			const data = tag.split(" ");
+
+			if (data[0] == "group") {
+				group = data[1];
+				indicesFound.push(idx);
+			} else if (data[0] == "isRoot") {
+				isRoot = (data[1] == "true" && true) || false;
+				indicesFound.push(idx);
+			} else if (data[0] == "title") {
+				data.splice(0, 1);
+				title = data.join(" ");
+				indicesFound.push(idx);
+			} else if (data[0] == "position") {
+				position = Number(data[1]) || 0;
+				indicesFound.push(idx);
+			}
+		}
+
+		// remove indices from tags list
+		for (const idx of indicesFound) {
+			tags.splice(idx, 1);
+		}
+
+		let groupSidebar = themeConfig.sidebar["api"].find(
+			(item) => item.text === group
+		);
+
+		if (group.includes("/")) {
+			const groups = group.split("/");
+
+			// recursively create sidebars for each group, and add ourselves into the last one
+			let currentGroup = themeConfig.sidebar[sidebarPath];
+			let currentSidebar = null;
+
+			for (const group of groups) {
+				let groupSidebar = currentGroup.find((item) => item.text === group);
+
+				if (groupSidebar == undefined) {
+					groupSidebar = {
+						text: group,
+						items: [],
+					};
+
+					currentGroup.push(groupSidebar);
+				}
+
+				currentGroup = groupSidebar.items;
+				currentSidebar = groupSidebar;
+			}
+
+			groupSidebar = currentSidebar;
+		}
+
+		if (isRoot) {
+			// so we can't guarantee that we're the first item to be inmserted
+			// so we have to do a different check for root
+			if (groupSidebar != undefined && groupSidebar.containsClass) {
+				throw new Error(
+					'Tried to add sidebar element as root to a group that already had a class as root. Make sure that you don\'t have "isRoot" enabled on a sidebar element with more than 2 classes.'
+				);
+			}
+
+			// insert self into current groupsidebar
+			if (groupSidebar == undefined) {
+				groupSidebar = {
+					text: title,
+					link: classSidebarData.href,
+					items: [],
+				};
+
+				themeConfig.sidebar[sidebarPath].push(groupSidebar);
+			} else {
+				groupSidebar.text = title;
+				groupSidebar.link = classSidebarData.href;
+			}
+
+			continue;
+		}
+
+		if (groupSidebar == undefined) {
+			groupSidebar = {
+				text: group,
 				items: [],
 			};
 
-			if (sidebarData.classes) {
-				// in case an empty sidebar is provided, useful for padding sections
-				for (const className of sidebarData.classes) {
-					const fndData = remainingClassNames.find(
-						(item) => item.label == className
-					);
-					if (fndData) {
-						remainingClassNames.splice(
-							remainingClassNames.findIndex((item) => item.label == className),
-							1
-						);
-
-						if (sidebarData.isRoot) {
-							if (sidebarData.children == undefined) {
-								// add ourselves to currentsidebar.items
-								currentSidebar.items.push({
-									text: fndData.label,
-									link: fndData.href,
-								});
-
-								addedAsRoot = true;
-								continue;
-							}
-
-							if (addedAsRoot) {
-								throw new Error(
-									'Tried to add sidebar element as root to a group that already had a class as root. Make sure that you don\'t have "isRoot" enabled on a sidebar element with more than 2 classes.'
-								);
-							}
-							// if collapse is enabled, the sidebar will be a link to the first item in the section
-							// and the items will be nested under it
-							sidebar = {
-								text: fndData.label,
-								link: fndData.href,
-								items: [],
-							};
-
-							addedAsRoot = true;
-							continue;
-						}
-
-						sidebar.items.push({
-							text: fndData.label,
-							link: fndData.href,
-						});
-					}
-				}
-			}
-
-			if (addedAsRoot && sidebarData.children == undefined) {
-				// we've added all children to parent, no need to do it again
-				return;
-			}
-
-			currentSidebar.items.push(sidebar);
-
-			if (sidebarData.children) {
-				for (const child of sidebarData.children) {
-					iterate(child, sidebar);
-				}
-			}
-
-			return sidebar;
+			themeConfig.sidebar[sidebarPath].push(groupSidebar);
 		}
 
-		for (const sidebarData of global.config.get("classSections")) {
-			createdSectionSidebars.push(
-				iterate(sidebarData, {
-					text: sidebarData.section,
-					items: [],
-				})
-			);
+		groupSidebar.items.push({
+			text: title,
+			link: classSidebarData.href,
+			position: position,
+		});
+
+		groupSidebar.containsClass = true;
+	}
+
+	function sortSidebar(sidebar) {
+		sidebar.items.sort((a, b) => {
+			if (a.position > b.position) {
+				return 1;
+			} else if (a.position < b.position) {
+				return -1;
+			} else {
+				return 0;
+			}
+		});
+
+		for (const item of sidebar.items) {
+			if (item.items) {
+				sortSidebar(item);
+			}
 		}
 	}
 
-	if (remainingClassNames.length > 0) {
-		themeConfig.sidebar["api"].items.push({
-			text: "API",
-			items: remainingClassNames.map((className) => {
-				return {
-					text: className.label,
-					link: className.href,
-				};
-			}),
-		});
+	for (const sidebar of themeConfig.sidebar["api"]) {
+		sortSidebar(sidebar);
 	}
 
 	for (const sidebar of createdSectionSidebars) {
@@ -330,6 +368,8 @@ module.exports = async function (
 			types.push(type);
 			skipMembers.add(type);
 		}
+
+		// organize all classes in the sidebar
 
 		// map all sections to a markdown string
 		let sectionString = "";
@@ -503,7 +543,14 @@ module.exports = async function (
 				}
 
 				const filePath = path.join(dir, file);
-				const frontmatter = frontMatter.loadFront(fs.readFileSync(filePath));
+				let frontmatter = null;
+
+				try {
+					frontmatter = frontMatter.loadFront(fs.readFileSync(filePath));
+				} catch (err) {
+					console.log("Could not get front matter: " + err);
+				}
+
 				const group =
 					frontmatter.group ||
 					(modifiableConfig.sidebarAliases &&
@@ -542,10 +589,37 @@ module.exports = async function (
 						}
 
 						currentGroup = groupSidebar.items;
-						currentSidebar = groupSidebar
+						currentSidebar = groupSidebar;
 					}
 
-					groupSidebar = currentSidebar
+					groupSidebar = currentSidebar;
+				}
+
+				if (frontmatter.isRoot == true) {
+					// so we can't guarantee that we're the first item to be inmserted
+					// so we have to do a different check for root
+					if (groupSidebar != undefined && groupSidebar.containsClass) {
+						throw new Error(
+							'Tried to add sidebar element as root to a group that already had a class as root. Make sure that you don\'t have "isRoot" enabled on a sidebar element with more than 2 classes.'
+						);
+					}
+
+					// insert self into current groupsidebar
+					if (groupSidebar == undefined) {
+						groupSidebar = {
+							text: frontmatter.title || titleCase(path.basename(file, ".md")),
+							link: sidebarPath + "/" + path.basename(file, ".md"),
+							items: [],
+						};
+
+						themeConfig.sidebar[sidebarPath].push(groupSidebar);
+					} else {
+						groupSidebar.text =
+							frontmatter.title || titleCase(path.basename(file, ".md"));
+						groupSidebar.link = classSidebarData.href;
+					}
+
+					continue;
 				}
 
 				if (groupSidebar == undefined) {
@@ -560,21 +634,14 @@ module.exports = async function (
 				// add self into group
 				groupSidebar.items.push({
 					text: frontmatter.title || titleCase(path.basename(file, ".md")),
+					link: sidebarPath + "/" + path.basename(file, ".md"),
 					position: frontmatter.position || 0,
 				});
 			}
 
-			// sort all groups in the sidebar on the position var
-			for (const group of sidebar) {
-				group.items.sort((a, b) => {
-					if (a.position < b.position) {
-						return -1;
-					} else if (a.position > b.position) {
-						return 1;
-					} else {
-						return 0;
-					}
-				});
+			// recursively sort all items in the sidebar based on their "position" key
+			for (const subSidebar of sidebar) {
+				sortSidebar(subSidebar);
 			}
 		}
 

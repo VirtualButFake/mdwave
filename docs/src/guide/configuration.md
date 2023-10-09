@@ -34,8 +34,6 @@ content = '<svg class="-top-px ml-1 inline fill-current transition-transform dur
 class = "group mx-1.5 border border-indigo-600 bg-indigo-500 text-slate-100 hover:bg-indigo-600 dark:border-indigo-400 dark:hover:bg-indigo-400"
 iconClass = "relative -top-px ml-1 inline fill-current transition-transform duration-150 group-hover:translate-x-1"
 
-
-# NavBar
 [[vitepress.nav]]
 text = "Home"
 link = "/"
@@ -304,7 +302,7 @@ guide = "Usage Guide"
 
 ---
 
-### frontmatter: group
+### group
 
 The group front matter option is used to group pages together in the sidebar. The format is a simple string, which is the name of the group.
 By default, all files in a directory are grouped together. Providing a "group" will list it under a seperate category in the sidebar.
@@ -320,7 +318,7 @@ group: Usage
 
 ---
 
-### frontmatter: position
+### position
 
 The position in the sidebar that this page will have. The default position is `0`.
 
@@ -331,7 +329,7 @@ position: 1
 ---
 ```
 
-### frontmatter: title
+### title
 
 The title of this page in the sidebar. The default title is the filename in TitleCase.
 
@@ -342,9 +340,20 @@ title: Usage Guide
 ---
 ```
 
-## API Reference Config
+---
 
-explanation on front matter, explanation on options, explanation on classsections and how it works
+### isRoot
+
+Whether to add this page as root. This should be a boolean. By adding as root, we mean replacing the `title` with a link to this page. This is useful if you have a parent page that contains several subpages. If you enable this, make sure to not add multiple pages to the same group. It will throw an error. Also, `title` is optional if this is set to `true.`
+
+Example of use:
+```yaml
+---
+isRoot: true
+---
+```
+
+## API Reference Config
 
 You can configure the sidebar layout of the API reference using the `classSections` config option. 
 This allows you to configure the groups, nesting and order of the classes in the sidebar.
@@ -352,17 +361,53 @@ This allows you to configure the groups, nesting and order of the classes in the
 The format of the `classSections` option is a list of objects, where each object represents a group of classes.
 Each object should have a `section` and `classes` key, and optionally a `collapse` key. 
 
-### section
+The API Reference configuration allows you to assign data to classes, so they are organized properly.
+This is inherited from the Docs pages, and you can apply the tags via Moonwave.
 
-The section is simply the title for this section. It determines the name of the group.
+### group
 
-### classes
+The group tag is used to group pages together in the sidebar. The format is a simple string, which is the name of the group.
+By default, all files in a directory are grouped together. Providing a "group" will list it under a seperate category in the sidebar.
 
-An array containing all the names of the classes that you want included in this group. Leftover classes will be appended to the sidebar under an "API" group.
+Also, you can nest groups by using a "/" in your group path, for example `Usage/Examples`. This will create a group called "Usage" with a subgroup called "Examples".
+
+Example of use:
+```lua
+---@tag group Usage/Examples
+```
+
+---
+
+### position
+
+The position in the sidebar that this page will have. The default position is `0`.
+
+Example of use:
+```lua
+---@tag position 1
+```
+
+### title
+
+The title of this page in the sidebar. The default title is the class name.
+
+Example of use:
+```lua
+---@tag title Usage Guide
+```
+
+---
 
 ### isRoot
 
-Whether to add the first class. This should be a boolean. By adding as root, we mean replacing the `section` title with a link to this class. This is useful if you have a parent class that contains several subclasses. If you enable this, make sure to not add multiple classes. It will throw an error. Also, `section` is optional if this is set to `true.`
+Whether to add this page as root. This should be a boolean. By adding as root, we mean replacing the `title` with a link to this page. This is useful if you have a parent page that contains several subpages. If you enable this, make sure to not add multiple pages to the same group. It will throw an error. Also, `title` is optional if this is set to `true.`
+
+Example of use:
+```lua
+---@tag isRoot true
+```
+
+---
 
 ## Appearance
 
