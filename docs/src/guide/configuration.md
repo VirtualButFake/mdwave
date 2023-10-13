@@ -411,4 +411,4 @@ Example of use:
 
 ## Appearance
 
-We don't have any appearance options yet. For the time being, a good way to modify the theme is to fork the [MDWave Repository](https://github.com/VirtualButFake/mdwave) and modify [theme](https://github.com/VirtualButFake/mdwave/main/src/outModes/vitepress/theme). This theme is directly copied over and is what makes up the site. Information on how to modify the theme can easily be found on the [Vitepress Documentation](https://vitepress.dev/reference/default-theme-config).
+We don't have any appearance options yet. For the time being, a good way to modify the theme is to fork the [MDWave Repository](https://github.com/VirtualButFake/mdwave) and modify [theme](https://github.com/VirtualButFake/mdwave/tree/main/src/outModes/vitepress/theme). This theme is directly copied over and is what makes up the site. Information on how to modify the theme can easily be found on the [Vitepress Documentation](https://vitepress.dev/reference/default-theme-config).
