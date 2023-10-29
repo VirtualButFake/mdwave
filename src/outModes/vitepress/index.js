@@ -11,15 +11,9 @@ const titleCase = require("to-title-case");
 
 const sha = require("js-sha1");
 const {
-	detectPackageManager,
 	installDependencies,
-	addDependency,
-	addDevDependency,
-	removeDependency,
 } = require("nypm");
 const { exec } = require("child_process");
-const { create } = require("domain");
-const { config } = require("yargs");
 const SNIP = "<!--hide-readme-content-before-this-line-->";
 
 async function Property() {

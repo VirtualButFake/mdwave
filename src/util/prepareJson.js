@@ -21,7 +21,7 @@ const mapLinks = (nameSet, items) =>
 
 		return {
 			type: "link",
-			href: `/api/${name}`,
+			href: `api/${name}`,
 			label: name,
 		};
 	});
@@ -35,7 +35,7 @@ function parseSimpleClassOrder(content, classOrder, nameSet) {
 		.sort((a, b) => a.localeCompare(b))
 		.map((name) => ({
 			type: "link",
-			href: `/api/${name}`,
+			href: `api/${name}`,
 			label: name,
 		}));
 
@@ -66,7 +66,7 @@ function parseSectionalClassOrder(content, classOrder, nameSet) {
 		.sort((a, b) => a.localeCompare(b))
 		.map((name) => ({
 			type: "link",
-			href: `/api/${name}`,
+			href: `api/${name}`,
 			label: name,
 		}));
 
@@ -77,7 +77,7 @@ function parseClassOrder(content, classOrder, nameSet) {
 	if (classOrder.length === 0) {
 		return [...nameSet].sort().map((name) => ({
 			type: "link",
-			href: `/api/${name}`,
+			href: `api/${name}`,
 			label: name,
 		}));
 	}
@@ -173,13 +173,18 @@ function parseApiCategories(luaClass, apiCategories) {
 async function generateTypeLinks(nameSet, luaClasses, baseUrl) {
 	const classNames = {};
 
-	nameSet.forEach((name) => (classNames[name] = `/api/${name}`));
+	nameSet.forEach(
+		(name) => (classNames[name] = `/api/${name}`)
+	);
 
 	const classTypesNames = luaClasses
 		.filter((luaClass) => luaClass.types.length > 0)
 		.forEach((luaClass) =>
 			luaClass.types.forEach(
-				(type) => (classNames[type.name] = `/api/${luaClass.name}#${type.name}`)
+				(type) =>
+					(classNames[type.name] = `/api/${
+						luaClass.name
+					}#${type.name}`)
 			)
 		);
 
@@ -190,6 +195,8 @@ async function generateTypeLinks(nameSet, luaClasses, baseUrl) {
 		...classNames,
 		...classTypesNames,
 	};
+
+	console.log(typeLinks);
 
 	return typeLinks;
 }

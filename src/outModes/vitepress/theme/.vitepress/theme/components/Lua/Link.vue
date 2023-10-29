@@ -1,6 +1,8 @@
 <script setup>
 	import { useRouter } from "vitepress";
+	import { useData } from 'vitepress'
 	const router = useRouter();
+	const { site } = useData()
 
 	const props = defineProps({
 		href: String,
@@ -9,7 +11,13 @@
 	const isLink = props.href.startsWith("http");
 
 	function navigate() {
-		router.go(props.href);
+		console.log(isLink, props.href)
+		if (isLink) {
+			return;
+		}
+
+		// prepend base url
+		router.go(site.value.base + props.href);
 	}
 </script>
 
