@@ -10,9 +10,7 @@ const frontMatter = require("yaml-front-matter");
 const titleCase = require("to-title-case");
 
 const sha = require("js-sha1");
-const {
-	installDependencies,
-} = require("nypm");
+const { installDependencies } = require("nypm");
 const { exec } = require("child_process");
 const SNIP = "<!--hide-readme-content-before-this-line-->";
 
@@ -634,8 +632,10 @@ module.exports = async function (
 			}
 
 			// recursively sort all items in the sidebar based on their "position" key
-			for (const subSidebar of sidebar) {
-				sortSidebar(subSidebar);
+			if (sidebar) {
+				for (const subSidebar of sidebar) {
+					sortSidebar(subSidebar);
+				}
 			}
 		}
 
