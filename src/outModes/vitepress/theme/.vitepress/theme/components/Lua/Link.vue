@@ -11,7 +11,6 @@
 	const isLink = props.href.startsWith("http");
 
 	function navigate() {
-		console.log(isLink, props.href)
 		if (isLink) {
 			return;
 		}

@@ -196,8 +196,6 @@ async function generateTypeLinks(nameSet, luaClasses, baseUrl) {
 		...classTypesNames,
 	};
 
-	console.log(typeLinks);
-
 	return typeLinks;
 }
 
