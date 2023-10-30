@@ -42,9 +42,9 @@ function ThroughDirectory(Directory) {
 
 	for (const file in dirFiles) {
 		const Absolute = path.join(Directory, dirFiles[file]);
-		if (fs.statSync(Absolute).isDirectory()) {
+		if (fs.existsSync(Absolute) && fs.statSync(Absolute).isDirectory()) {
 			Files = Files.concat(ThroughDirectory(Absolute));
-		} else {
+		} else if (fs.existsSync(Absolute)) {
 			Files.push(Absolute);
 		}
 	}
@@ -129,7 +129,16 @@ module.exports = {
 			},
 		});
 
+		let isRunning = false;
+		let queued = false;
+		const tempDir = path.join(global.appRoot, "temp", sha1(dir), "src");
+
 		async function update() {
+			if (isRunning) {
+				queued = true;
+				return;
+			}
+
 			let result;
 			try {
 				result = await extract(argv.folder);
@@ -187,36 +196,31 @@ module.exports = {
 			}
 
 			const newJsonData = await prepareJson(result);
-			newJsonData.settings.tempDataOutput = path.join(
-				global.appRoot,
-				"temp",
-				sha1(dir),
-				"src"
-			);
+			newJsonData.settings.tempDataOutput = tempDir;
 
 			// output
-			try {
-				await outModes.vitepress(
-					newJsonData.typeLinks,
-					newJsonData.sidebar,
-					newJsonData.classes,
-					newJsonData.settings,
-					{
-						readme,
-						changelog,
-					},
-					false
-				);
-			} catch (err) {
+			//try {
+			await outModes.vitepress(
+				newJsonData.typeLinks,
+				newJsonData.sidebar,
+				newJsonData.classes,
+				newJsonData.settings,
+				{
+					readme,
+					changelog,
+				},
+				false
+			);
+			/*} catch (err) {
 				console.log(
 					"Could not output docs. Please check your syntax and try again. Error: " +
 						err
 				);
-			}
+			}*/
 
 			// this pushes into our temp folder; compare differences with current files
 			// iterate files
-			const files = ThroughDirectory(newJsonData.settings.tempDataOutput);
+			const files = await ThroughDirectory(newJsonData.settings.tempDataOutput);
 
 			for (const file of files) {
 				const relative = path.join(
@@ -225,7 +229,7 @@ module.exports = {
 				);
 				// compare files
 				if (fs.existsSync(path.join(dir, relative))) {
-					fc(file, path.join(dir, relative), (result) => {
+					await fc(file, path.join(dir, relative), (result) => {
 						if (!result) {
 							if (path.basename(file, ".json") == "config") {
 								fs.writeFileSync(
@@ -242,12 +246,51 @@ module.exports = {
 					fs.writeFileSync(path.join(dir, relative), fs.readFileSync(file));
 				}
 			}
+
+			// handle queue
+			isRunning = false;
+
+			if (queued) {
+				queued = false;
+				update();
+			}
 		}
 
 		// run vitepress dev server
-		watcher.on("change", update);
+		watcher.on("all", function (eventName, changePath, stats) {
+			if (eventName == "change") {
+				update();
+			} else if (eventName == "unlink") {
+				const relative = path.relative(
+					path.join(process.cwd(), "docs"),
+					changePath
+				);
+				const isChild =
+					relative && !relative.startsWith("..") && !path.isAbsolute(relative);
 
-		update(); // get the initial update out of the way, it's messy and causes issues sometimes
+				if (isChild) {
+					fs.unlinkSync(path.join(dir, "src", "docs", relative));
+					update()
+				}
+			} else if (eventName == "add") {
+				const relative = path.relative(
+					path.join(process.cwd(), "docs"),
+					changePath
+				);
+				const isChild =
+					relative && !relative.startsWith("..") && !path.isAbsolute(relative);
+
+				if (isChild) {
+					fs.writeFileSync(
+						path.join(dir, "src", "docs", relative),
+						fs.readFileSync(changePath)
+					);
+					update()
+				}
+			}
+		});
+
+		await update(); // get the initial update out of the way, it's messy and causes issues sometimes
 		await run("npm run docs:dev --open", dir);
 	},
 };

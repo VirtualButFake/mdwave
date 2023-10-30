@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const recursiveCopy = require("recursive-copy");
+const fsExtra = require("fs-extra");
 
 const process = require("process");
 const ghp = require("gh-pages");
@@ -13,6 +13,44 @@ const sha = require("js-sha1");
 const { installDependencies } = require("nypm");
 const { exec } = require("child_process");
 const SNIP = "<!--hide-readme-content-before-this-line-->";
+
+async function replaceDir(orig, target, removeOld) {
+	// recursively iterates through "orig" and pastes it at the same location in "target"
+	// copying = reading file & writing to new location
+
+	// check if target exists
+	if (!fs.existsSync(target)) {
+		fs.mkdirSync(target);
+	}
+
+	for (const file of fs.readdirSync(orig)) {
+		const filePath = path.join(orig, file);
+		const targetPath = path.join(target, file);
+
+		if (fs.lstatSync(filePath).isDirectory()) {
+			await replaceDir(filePath, targetPath);
+		} else {
+			fs.writeFileSync(targetPath, fs.readFileSync(filePath));
+		}
+	}
+
+	// remove files that aren't found in original
+	if (!removeOld) return;
+
+	for (const file of fs.readdirSync(target)) {
+		const filePath = path.join(orig, file);
+		const targetPath = path.join(target, file);
+
+		if (!fs.existsSync(filePath)) {
+			try {
+				fs.chmodSync(targetPath, 0o777);
+				fs.rmSync(targetPath, { recursive: true });
+			} catch (err) {
+				console.log("Failed to remove file: " + err);
+			}
+		}
+	}
+}
 
 async function Property() {
 	return fs.readFileSync(
@@ -101,8 +139,6 @@ module.exports = async function (
 	const apiPath = path.join(mdPath, "api");
 
 	fs.mkdirSync(apiPath, { recursive: true });
-	fs.mkdirSync(apiPath, { recursive: true });
-
 	if (sidebarClassNames[0] == undefined) {
 		throw new Error("No classes found in sidebarClassNames");
 	}
@@ -544,7 +580,7 @@ module.exports = async function (
 
 			for (const file of fs.readdirSync(dir)) {
 				if (fs.lstatSync(path.join(dir, file)).isDirectory()) {
-					iterateDocs(path.join(dir, file), sidebarPath + "/" + file);
+					await iterateDocs(path.join(dir, file), sidebarPath + "/" + file);
 					continue;
 				}
 
@@ -653,18 +689,11 @@ module.exports = async function (
 			}
 		}
 
-		iterateDocs(path.join(process.cwd(), "docs"), "docs");
+		await iterateDocs(path.join(process.cwd(), "docs"), "docs");
 
 		// clone docs folder into base
 		// remove old folder if exists
-		if (fs.existsSync(path.join(mdPath, "docs"))) {
-			fs.rmSync(path.join(mdPath, "docs"), { recursive: true });
-		}
-
-		await recursiveCopy(
-			path.join(process.cwd(), "docs"),
-			path.join(mdPath, "docs")
-		);
+		replaceDir(path.join(process.cwd(), "docs"), path.join(mdPath, "docs"), true);
 	}
 
 	if (settings.tempDataOutput == undefined) {
@@ -674,14 +703,7 @@ module.exports = async function (
 		);
 
 		for (const filePath of fs.readdirSync(path.join(__dirname, "theme"))) {
-			if (fs.existsSync(path.join(folderPath, filePath))) {
-				fs.rmSync(path.join(folderPath, filePath), { recursive: true });
-			}
-
-			await recursiveCopy(
-				path.join(__dirname, "theme", filePath),
-				path.join(folderPath, filePath)
-			);
+			replaceDir(path.join(__dirname, "theme", filePath), path.join(folderPath, filePath), true);
 		}
 	} else {
 		fs.writeFileSync(
@@ -721,8 +743,9 @@ module.exports = async function (
 	}
 
 	if (settings.output != "github-pages") {
-		await recursiveCopy(path.join(folderPath, "dist"), basePath);
-		fs.rmSync(path.join(folderPath, "dist"), { recursive: true });
+		fsExtra.moveSync(path.join(folderPath, "dist"), basePath, {
+			overwrite: true,
+		});
 	} else {
 		// publish to gh-pages
 		process.chdir(oldDir);

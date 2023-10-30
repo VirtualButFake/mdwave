@@ -12,3 +12,9 @@ Fixed several bugs:
 - Added support for @error tag
 - Fixed bug on type parsing where commas would get added without a need to
 - Fixed bug where skipped types would cause an empty header to appear
+
+# 1.3.7
+Improved ``mdwave dev``:
+- ``docs`` folders are now properly auto-updated and changes to the filesystem will no longer crash the server
+
+(this version was stupidly frustrating to make)

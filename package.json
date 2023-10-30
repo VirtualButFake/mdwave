@@ -1,6 +1,6 @@
 {
 	"name": "mdwave",
-	"version": "1.3.6",
+	"version": "1.3.7",
 	"description": "",
 	"main": "./index.js",
 	"scripts": {
@@ -14,6 +14,7 @@
 		"config": "^3.3.9",
 		"config-reloadable": "^1.0.9",
 		"filecompare": "^1.0.4",
+		"fs-extra": "^11.1.1",
 		"gh-pages": "^6.0.0",
 		"js-sha1": "^0.6.0",
 		"json-to-pretty-yaml": "^1.2.2",
