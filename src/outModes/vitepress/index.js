@@ -23,6 +23,12 @@ async function replaceDir(orig, target, removeOld) {
 		fs.mkdirSync(target);
 	}
 
+	if (fs.lstatSync(orig).isFile()) {
+		// just replace
+		fs.writeFileSync(target, fs.readFileSync(orig));
+		return;
+	}
+
 	for (const file of fs.readdirSync(orig)) {
 		const filePath = path.join(orig, file);
 		const targetPath = path.join(target, file);
@@ -694,6 +700,11 @@ module.exports = async function (
 		// clone docs folder into base
 		// remove old folder if exists
 		replaceDir(path.join(process.cwd(), "docs"), path.join(mdPath, "docs"), true);
+	} else {
+		// remove docs folder if we have a temp
+		if (settings.tempDataOutput && fs.existsSync(path.join(mdPath, "docs"))) {
+			fs.rmSync(path.join(mdPath, "docs"), { recursive: true });
+		}
 	}
 
 	if (settings.tempDataOutput == undefined) {

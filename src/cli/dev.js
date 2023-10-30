@@ -199,24 +199,24 @@ module.exports = {
 			newJsonData.settings.tempDataOutput = tempDir;
 
 			// output
-			//try {
-			await outModes.vitepress(
-				newJsonData.typeLinks,
-				newJsonData.sidebar,
-				newJsonData.classes,
-				newJsonData.settings,
-				{
-					readme,
-					changelog,
-				},
-				false
-			);
-			/*} catch (err) {
+			try {
+				await outModes.vitepress(
+					newJsonData.typeLinks,
+					newJsonData.sidebar,
+					newJsonData.classes,
+					newJsonData.settings,
+					{
+						readme,
+						changelog,
+					},
+					false
+				);
+			} catch (err) {
 				console.log(
 					"Could not output docs. Please check your syntax and try again. Error: " +
 						err
 				);
-			}*/
+			}
 
 			// this pushes into our temp folder; compare differences with current files
 			// iterate files
@@ -270,7 +270,7 @@ module.exports = {
 
 				if (isChild) {
 					fs.unlinkSync(path.join(dir, "src", "docs", relative));
-					update()
+					update();
 				}
 			} else if (eventName == "add") {
 				const relative = path.relative(
@@ -285,7 +285,7 @@ module.exports = {
 						path.join(dir, "src", "docs", relative),
 						fs.readFileSync(changePath)
 					);
-					update()
+					update();
 				}
 			}
 		});
