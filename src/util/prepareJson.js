@@ -174,7 +174,7 @@ async function generateTypeLinks(nameSet, luaClasses, baseUrl) {
 	const classNames = {};
 
 	nameSet.forEach(
-		(name) => (classNames[name] = `/api/${name}`)
+		(name) => (classNames[name] = `api/${name}`)
 	);
 
 	const classTypesNames = luaClasses
@@ -182,7 +182,7 @@ async function generateTypeLinks(nameSet, luaClasses, baseUrl) {
 		.forEach((luaClass) =>
 			luaClass.types.forEach(
 				(type) =>
-					(classNames[type.name] = `/api/${
+					(classNames[type.name] = `api/${
 						luaClass.name
 					}#${type.name}`)
 			)

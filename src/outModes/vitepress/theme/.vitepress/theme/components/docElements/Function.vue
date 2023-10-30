@@ -58,7 +58,7 @@
 		let paramMap = [];
 
 		for (let param of props.func.params) {
-			let paramString = `${param.name}: ${param.lua_type},`;
+			let paramString = `${param.name}: ${param.lua_type}${param == props.func.params[props.func.params.length - 1] ? "" : ","}`;
 			const tokens = createTokens(props.typeContext, paramString, 1);
 
 			// find the last token
@@ -139,20 +139,24 @@
 						text: ")",
 						depth: 1,
 					},
-					{
-						type: "code",
-						text: " → ",
-						color: "text-syntax-punc-light dark:text-syntax-punc-dark",
-					},
 				],
 				depth: 0,
 			},
 		];
 
+		if (props.func.returns.length != 0) {
+			closingBrackets[0].tokens.push({
+				type: "code",
+				text: " → ",
+				color: "text-syntax-punc-light dark:text-syntax-punc-dark",
+			})
+		}
+
 		tokenMap = mergeTokenMaps(
 			mergeTokenMaps(
 				mergeTokenMaps(startTokens, paramMap),
 				closingBrackets,
+				props.func.params.length == 0 ? true : false
 			),
 			returnMap,
 			true,

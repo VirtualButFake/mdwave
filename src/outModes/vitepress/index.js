@@ -21,11 +21,25 @@ async function Property() {
 	);
 }
 
-async function Function() {
-	return fs.readFileSync(
-		path.join(__dirname, "components/Function.md"),
-		"utf-8"
-	);
+async function Function(member) {
+	let errorTable = "";
+
+	if (member.errors) {
+		// create github style table containing this data
+		const base = "#### Errors \n| Type | Description |\n| --- | --- |\n";
+		const newLine = "| $ERROR$ | $DESCRIPTION$ |\n";
+		errorTable = base;
+
+		for (const error of member.errors) {
+			errorTable += newLine
+				.replace("$ERROR$", error.lua_type)
+				.replace("$DESCRIPTION$", error.desc);
+		}
+	}
+
+	return fs
+		.readFileSync(path.join(__dirname, "components/Function.md"), "utf-8")
+		.replace("$ERROR_TABLE$", errorTable);
 }
 
 async function Type() {
@@ -361,8 +375,6 @@ module.exports = async function (
 			skipMembers.add(type);
 		}
 
-		// organize all classes in the sidebar
-
 		// map all sections to a markdown string
 		let sectionString = "";
 
@@ -379,16 +391,14 @@ module.exports = async function (
 			// iterate through members
 			const members = actualClass[section.name];
 
-			if (members.length == 0) {
-				continue;
-			}
-
 			let memberString = "";
+			let validFound = false;
 
 			for (const idx in members) {
 				const member = members[idx];
 
 				if (!skipMembers.has(member)) {
+					validFound = true;
 					memberString += await Member(
 						settings,
 						member,
@@ -398,6 +408,10 @@ module.exports = async function (
 						section.component
 					);
 				}
+			}
+
+			if (!validFound) {
+				continue;
 			}
 
 			sectionString += sectionBase.replace("$SECTION_CONTENT$", memberString);

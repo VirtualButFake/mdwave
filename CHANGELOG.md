@@ -7,3 +7,8 @@ Added isRoot to Docs.
 Fixed several bugs:
 - Base url is now prepended to class links
 - Clean URL support for VitePress
+
+# 1.3.6
+- Added support for @error tag
+- Fixed bug on type parsing where commas would get added without a need to
+- Fixed bug where skipped types would cause an empty header to appear
