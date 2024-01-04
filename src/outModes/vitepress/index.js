@@ -24,7 +24,6 @@ async function replaceDir(orig, target, removeOld) {
 	}
 
 	if (fs.lstatSync(orig).isFile()) {
-		// just replace
 		fs.writeFileSync(target, fs.readFileSync(orig));
 		return;
 	}
@@ -181,13 +180,7 @@ module.exports = async function (
 
 	// sidebar
 	// map sidebarClassNames to custom sidebar groups (if specified)
-	let remainingClassNames = sidebarClassNames.slice(0);
-	themeConfig.sidebar["api"] = [
-		/*{
-		text: "API",
-		items: [],
-	}*/
-	];
+	themeConfig.sidebar["api"] = [];
 
 	let createdSectionSidebars = [];
 	const sidebarPath = "api";
@@ -699,7 +692,11 @@ module.exports = async function (
 
 		// clone docs folder into base
 		// remove old folder if exists
-		replaceDir(path.join(process.cwd(), "docs"), path.join(mdPath, "docs"), true);
+		replaceDir(
+			path.join(process.cwd(), "docs"),
+			path.join(mdPath, "docs"),
+			true
+		);
 	} else {
 		// remove docs folder if we have a temp
 		if (settings.tempDataOutput && fs.existsSync(path.join(mdPath, "docs"))) {
@@ -714,7 +711,20 @@ module.exports = async function (
 		);
 
 		for (const filePath of fs.readdirSync(path.join(__dirname, "theme"))) {
-			replaceDir(path.join(__dirname, "theme", filePath), path.join(folderPath, filePath), true);
+			if (fs.lstatSync(path.join(__dirname, "theme", filePath)).isFile()) {
+				fs.writeFileSync(
+					path.join(folderPath, filePath),
+					fs.readFileSync(path.join(__dirname, "theme", filePath))
+				);
+
+				continue;
+			}
+
+			replaceDir(
+				path.join(__dirname, "theme", filePath),
+				path.join(folderPath, filePath),
+				true
+			);
 		}
 	} else {
 		fs.writeFileSync(
