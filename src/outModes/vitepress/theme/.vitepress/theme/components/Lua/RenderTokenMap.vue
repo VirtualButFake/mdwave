@@ -11,20 +11,6 @@
 		"text-syntax-depth2-light dark:text-syntax-depth2-dark",
 		"text-syntax-depth3-light dark:text-syntax-depth3-dark",
 	];
-
-	const DEPTH_OFFSETS = [
-		"ml-[0rem]",
-		"ml-[1rem]",
-		"ml-[2rem]",
-		"ml-[3rem]",
-		"ml-[4rem]",
-		"ml-[5rem]",
-		"ml-[6rem]",
-		"ml-[7rem]",
-		"ml-[8rem]",
-		"ml-[9rem]",
-		"ml-[10rem]", // if you manage to go past 11, you're insane
-	];
 </script>
 <template>
 	<CustomCodeBlock>

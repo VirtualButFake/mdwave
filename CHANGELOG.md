@@ -17,4 +17,8 @@ Fixed several bugs:
 Improved ``mdwave dev``:
 - ``docs`` folders are now properly auto-updated and changes to the filesystem will no longer crash the server
 
+# 1.3.8
+- Fix a lot of bugs
+- Fix issue where a code block would show up twice
+
 (this version was stupidly frustrating to make)
