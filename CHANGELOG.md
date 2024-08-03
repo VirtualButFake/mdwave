@@ -7,3 +7,18 @@ Added isRoot to Docs.
 Fixed several bugs:
 - Base url is now prepended to class links
 - Clean URL support for VitePress
+
+# 1.3.6
+- Added support for @error tag
+- Fixed bug on type parsing where commas would get added without a need to
+- Fixed bug where skipped types would cause an empty header to appear
+
+# 1.3.7
+Improved ``mdwave dev``:
+- ``docs`` folders are now properly auto-updated and changes to the filesystem will no longer crash the server
+
+# 1.3.8
+- Fix a lot of bugs
+- Fix issue where a code block would show up twice
+
+(this version was stupidly frustrating to make)

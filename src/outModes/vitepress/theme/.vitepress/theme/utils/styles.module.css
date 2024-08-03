@@ -1,46 +1,46 @@
 :root {
-	--op-color: rgb(240 182 182);
+    --op-color: rgb(240 182 182);
 }
 
 .member h3 code,
 .memberString code {
-	background: none;
-	border: none;
-	display: inline-block;
-	padding: 0;
+    background: none;
+    border: none;
+    display: inline-block;
+    padding: 0;
 }
 
 .member code.op {
-	color: var(--op-color);
+    color: var(--op-color);
 }
 
 .member code.blue {
-	color: rgb(130, 170, 255);
+    color: rgb(130, 170, 255);
 }
 
 .member code.green {
-	color: #10ac84;
+    color: #10ac84;
 }
 
 .member code.purple {
-	color: rgb(199, 146, 234);
+    color: rgb(199, 146, 234);
 }
 
 .member code.yellow {
-	color: rgb(255, 203, 107);
+    color: rgb(255, 203, 107);
 }
 
 .member code.orange {
-	color: rgb(247, 140, 108);
+    color: rgb(247, 140, 108);
 }
 
 .member code.cyan {
-	color: rgb(137, 221, 255);
+    color: rgb(137, 221, 255);
 }
 
 .member code.red {
-	color: rgb(255, 88, 116);
+    color: rgb(255, 88, 116);
 }
 .inset {
-	margin-left: 3rem;
+    margin-left: 3rem;
 }

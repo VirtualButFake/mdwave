@@ -1,0 +1,25 @@
+{
+    "root": true,
+    "parserOptions": {
+        "ecmaVersion": 2020
+    },
+    "plugins": [],
+    "rules": {
+        "curly": "warn",
+        "no-throw-literal": "warn",
+        "no-unused-vars": "warn",
+        "no-mixed-spaces-and-tabs": "warn",
+        "no-trailing-spaces": "warn",
+        "no-multi-spaces": "warn",
+        "no-multiple-empty-lines": "warn",
+        "no-irregular-whitespace": "warn",
+        "no-unexpected-multiline": "warn",
+        "no-duplicate-case": "warn",
+        "no-unreachable": "warn"
+    },
+    "ignorePatterns": [
+        "out",
+        "dist",
+        "**/*.d.ts"
+    ]
+}
